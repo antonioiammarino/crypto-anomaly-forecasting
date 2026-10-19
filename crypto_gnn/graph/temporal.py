@@ -146,7 +146,7 @@ def summarize_graph(graph):
 
 
 # Build the default BTC graph and save its diagnostic summary.
-def main():
+if __name__ == "__main__":
     frame = load_cryptocurrency(DATASET_DIRECTORY / f"{GRAPH_SYMBOL}.csv")
     graph = build_temporal_visibility_graph(frame, VISIBILITY_WINDOW)
     summary = summarize_graph(graph)
@@ -158,7 +158,3 @@ def main():
     )
     print(json.dumps(summary, indent=2))
     print(f"\nSummary written to: {SUMMARY_OUTPUT}")
-
-
-if __name__ == "__main__":
-    main()
