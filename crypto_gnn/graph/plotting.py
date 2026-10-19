@@ -133,7 +133,7 @@ def plot_graph_sample(frame, graph, output_path):
 
 
 # Build and plot the fixed BTC interval used in the project documentation.
-def main():
+if __name__ == "__main__":
     frame = load_cryptocurrency(DATASET_DIRECTORY / f"{SYMBOL}.csv")
     start = pd.Timestamp(START)
     stop = start + pd.DateOffset(hours=HOURS)
@@ -141,7 +141,3 @@ def main():
     graph = build_temporal_visibility_graph(sample, visibility_window=HOURS)
     plot_graph_sample(sample, graph, OUTPUT_PATH)
     print(OUTPUT_PATH)
-
-
-if __name__ == "__main__":
-    main()

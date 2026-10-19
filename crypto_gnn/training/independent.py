@@ -544,9 +544,5 @@ def run_nested_cv(settings):
 
 # Keep execution explicit and controlled by the configuration file so the same
 # recorded settings are used when the experiment is restarted.
-def main():
-    run_nested_cv(EXPERIMENT)
-
-
 if __name__ == "__main__":
-    main()
+    run_nested_cv(EXPERIMENT)

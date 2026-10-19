@@ -143,7 +143,7 @@ def summarize_dataset(datasets):
 
 # Prepare all cryptocurrencies and save the summary used to inspect the dataset
 # before starting expensive graph construction and training.
-def main():
+if __name__ == "__main__":
     datasets = load_all_cryptocurrencies(
         DATASET_DIRECTORY,
         anomaly_threshold=ANOMALY_THRESHOLD,
@@ -169,8 +169,4 @@ def main():
     display[percentage_columns] = display[percentage_columns].round(2)
     print(display.to_string(index=False))
     print(f"\nSummary written to: {SUMMARY_OUTPUT}")
-
-
-if __name__ == "__main__":
-    main()
 
