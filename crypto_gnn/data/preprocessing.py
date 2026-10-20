@@ -22,7 +22,6 @@ LABEL_NAMES = {
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATASET_DIRECTORY = PROJECT_ROOT / "dataset crypto" / "cryptos_merged"
 SUMMARY_OUTPUT = PROJECT_ROOT / "artifacts" / "data_quality_summary.csv"
-PROCESSED_DIRECTORY = None
 ANOMALY_THRESHOLD = 0.01
 
 
@@ -144,8 +143,8 @@ def summarize_dataset(datasets):
     return pd.DataFrame(rows)
 
 
-# Prepare all cryptocurrencies and save the summary used to inspect the dataset
-# before starting expensive graph construction and training.
+# Apply the preprocessing pipeline and save a summary for dataset inspection.
+# Training calls the same functions directly and keeps transformed data in memory.
 if __name__ == "__main__":
     datasets = load_all_cryptocurrencies(
         DATASET_DIRECTORY,
@@ -155,12 +154,6 @@ if __name__ == "__main__":
 
     SUMMARY_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     summary.to_csv(SUMMARY_OUTPUT, index=False)
-
-    if PROCESSED_DIRECTORY is not None:
-        PROCESSED_DIRECTORY.mkdir(parents=True, exist_ok=True)
-        for symbol, frame in datasets.items():
-            output_path = PROCESSED_DIRECTORY / f"{symbol}.csv"
-            frame.to_csv(output_path, index_label="timestamp")
 
     display = summary.copy()
     percentage_columns = [
