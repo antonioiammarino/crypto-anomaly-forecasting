@@ -9,7 +9,7 @@ from sklearn.metrics import confusion_matrix, f1_score
 from torch.nn import functional as F
 from torch_geometric.data import Data
 
-from crypto_gnn.data.features import (
+from crypto_gnn.data.preparation.features import (
     FEATURE_SET_NAMES,
     build_causal_features,
     fit_feature_standardizer,

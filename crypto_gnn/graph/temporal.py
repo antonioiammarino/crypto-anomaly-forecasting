@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from crypto_gnn.data.preprocessing import load_cryptocurrency
+from crypto_gnn.data.preparation.preprocessing import load_cryptocurrency
 
 
 EDGE_TEMPORAL = 0

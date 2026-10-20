@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from crypto_gnn.data.features import (
+from crypto_gnn.data.preparation.features import (
     build_causal_feature_window,
     fit_feature_standardizer,
     standardize_features,

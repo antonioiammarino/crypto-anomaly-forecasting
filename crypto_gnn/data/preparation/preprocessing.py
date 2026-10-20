@@ -1,4 +1,4 @@
-# Loading and causal preprocessing of hourly cryptocurrency data.
+# Loading and causal preparation of hourly cryptocurrency data.
 
 from pathlib import Path
 
@@ -19,9 +19,8 @@ LABEL_NAMES = {
     LABEL_DOWN: "down",
 }
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATASET_DIRECTORY = PROJECT_ROOT / "dataset crypto" / "cryptos_merged"
-SUMMARY_OUTPUT = PROJECT_ROOT / "artifacts" / "data_quality_summary.csv"
 ANOMALY_THRESHOLD = 0.01
 
 
@@ -61,7 +60,7 @@ def preprocess_frame(
     future_return = future_close.div(numeric_raw["Close"]).sub(1.0)
     target_valid = raw_close_valid & raw_close_valid.shift(-1, fill_value=False)
 
-    # Invalid targets use -1
+    # Invalid targets use -1 so they cannot be confused with the normal class.
     # Valid returns inside the two anomaly thresholds belong to the normal class.
     labels = pd.Series(LABEL_INVALID, index=result.index, dtype="int8")
     labels.loc[target_valid] = LABEL_NORMAL
@@ -113,56 +112,4 @@ def load_all_cryptocurrencies(
     return datasets
 
 
-# Summarize missing observations and class balance. Percentages use only valid
-# targets because rows next to missing prices do not have a real future return.
-def summarize_dataset(datasets):
-    rows = []
-    for symbol, frame in sorted(datasets.items()):
-        valid = frame.loc[frame["target_valid"]]
-        counts = valid["target"].value_counts()
-        valid_count = len(valid)
-
-        rows.append(
-            {
-                "symbol": symbol,
-                "rows": len(frame),
-                "start_utc": frame.index.min(),
-                "end_utc": frame.index.max(),
-                "missing_rows": int((~frame["observation_valid"]).sum()),
-                "valid_targets": valid_count,
-                "normal": int(counts.get(LABEL_NORMAL, 0)),
-                "up": int(counts.get(LABEL_UP, 0)),
-                "down": int(counts.get(LABEL_DOWN, 0)),
-                "normal_pct": 100.0 * counts.get(LABEL_NORMAL, 0) / valid_count,
-                "up_pct": 100.0 * counts.get(LABEL_UP, 0) / valid_count,
-                "down_pct": 100.0 * counts.get(LABEL_DOWN, 0) / valid_count,
-                "zero_volume_pct": 100.0 * frame["Volume"].eq(0).mean(),
-            }
-        )
-
-    return pd.DataFrame(rows)
-
-
-# Apply the preprocessing pipeline and save a summary for dataset inspection.
-# Training calls the same functions directly and keeps transformed data in memory.
-if __name__ == "__main__":
-    datasets = load_all_cryptocurrencies(
-        DATASET_DIRECTORY,
-        anomaly_threshold=ANOMALY_THRESHOLD,
-    )
-    summary = summarize_dataset(datasets)
-
-    SUMMARY_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    summary.to_csv(SUMMARY_OUTPUT, index=False)
-
-    display = summary.copy()
-    percentage_columns = [
-        "normal_pct",
-        "up_pct",
-        "down_pct",
-        "zero_volume_pct",
-    ]
-    display[percentage_columns] = display[percentage_columns].round(2)
-    print(display.to_string(index=False))
-    print(f"\nSummary written to: {SUMMARY_OUTPUT}")
 

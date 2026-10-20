@@ -1,3 +1,5 @@
+# Chronological partitions used during model development and evaluation.
+
 import numpy as np
 import pandas as pd
 

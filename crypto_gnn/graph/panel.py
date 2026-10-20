@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from crypto_gnn.data.preprocessing import load_all_cryptocurrencies
+from crypto_gnn.data.preparation.preprocessing import load_all_cryptocurrencies
 from crypto_gnn.graph.temporal import EDGE_TEMPORAL
 
 

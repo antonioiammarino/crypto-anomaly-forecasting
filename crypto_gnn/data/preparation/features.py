@@ -1,4 +1,4 @@
-# Causal feature engineering, temporal windows and train-only standardization.
+# Causal feature construction, temporal windows and train-only standardization.
 
 import numpy as np
 import pandas as pd

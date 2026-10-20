@@ -28,7 +28,7 @@ from crypto_gnn.clustering.series import (
     build_clustering_series,
     clustering_series_metadata,
 )
-from crypto_gnn.data.preprocessing import load_all_cryptocurrencies
+from crypto_gnn.data.preparation.preprocessing import load_all_cryptocurrencies
 
 
 # Save readable JSON because partitions are inspected directly and later loaded by
