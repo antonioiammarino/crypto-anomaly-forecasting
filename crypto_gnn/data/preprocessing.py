@@ -8,10 +8,12 @@ import pandas as pd
 
 FEATURE_COLUMNS = ("Open", "High", "Low", "Close", "Volume")
 
+LABEL_INVALID = -1
 LABEL_NORMAL = 0
 LABEL_UP = 1
 LABEL_DOWN = 2
 LABEL_NAMES = {
+    LABEL_INVALID: "invalid",
     LABEL_NORMAL: "normal",
     LABEL_UP: "up",
     LABEL_DOWN: "down",
@@ -60,9 +62,10 @@ def preprocess_frame(
     future_return = future_close.div(numeric_raw["Close"]).sub(1.0)
     target_valid = raw_close_valid & raw_close_valid.shift(-1, fill_value=False)
 
-    # Returns above the positive threshold and below the negative threshold form
-    # the two anomaly classes. Values between them belong to the normal class.
-    labels = pd.Series(LABEL_NORMAL, index=result.index, dtype="int8")
+    # Invalid targets use -1
+    # Valid returns inside the two anomaly thresholds belong to the normal class.
+    labels = pd.Series(LABEL_INVALID, index=result.index, dtype="int8")
+    labels.loc[target_valid] = LABEL_NORMAL
     labels.loc[target_valid & future_return.ge(anomaly_threshold)] = LABEL_UP
     labels.loc[target_valid & future_return.le(-anomaly_threshold)] = LABEL_DOWN
 

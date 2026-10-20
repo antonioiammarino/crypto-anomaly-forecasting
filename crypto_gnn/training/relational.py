@@ -326,8 +326,7 @@ def create_progress(experiment_root, total_runs, report_every):
     return progress
 
 
-# Save only counts and the active fit because elapsed times do not describe the
-# scientific experiment and made the previous output unnecessarily detailed.
+# Save only counts and the active fit
 def save_progress(experiment_root, progress, status):
     payload = {
         "protocol": PROTOCOL_NAME,
