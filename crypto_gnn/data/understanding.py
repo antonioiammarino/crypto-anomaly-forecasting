@@ -11,7 +11,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATASET_DIRECTORY = PROJECT_ROOT / "dataset crypto" / "cryptos_merged"
 DESCRIPTION_OUTPUT = PROJECT_ROOT / "artifacts" / "data_description.csv"
 QUALITY_OUTPUT = PROJECT_ROOT / "artifacts" / "data_quality.csv"
-DEVELOPMENT_END = pd.Timestamp("2022-01-01", tz="UTC")
 
 
 # Read the raw files without applying targets or model transformations. Data
@@ -22,22 +21,21 @@ def load_raw_datasets(dataset_directory):
         frame = pd.read_csv(path)
         dates = pd.to_datetime(frame["Date"])
 
-        # Local timestamps are converted to UTC only to select the exact development
-        # period. The repeated autumn hour is valid and becomes unique in UTC.
+        # Local timestamps are converted to UTC so repeated autumn hours become
+        # distinct observations and the complete timeline can be checked correctly.
         local_dates = dates.dt.tz_localize("Europe/Rome", ambiguous="infer")
         frame["timestamp_utc"] = local_dates.dt.tz_convert("UTC")
         datasets[path.stem] = frame
     return datasets
 
 
-# Calculate descriptive statistics on the development period. The confirmatory
-# year is excluded because it was kept aside until the protocol had been frozen.
-def describe_data(datasets, development_end=DEVELOPMENT_END):
+# Calculate descriptive statistics on every available row. Data Understanding
+# describes the acquired dataset, while later splits decide how each period is used.
+def describe_data(datasets):
     rows = []
     for symbol, frame in sorted(datasets.items()):
-        development = frame.loc[frame["timestamp_utc"] < development_end]
         for feature in MARKET_COLUMNS:
-            values = pd.to_numeric(development[feature], errors="coerce")
+            values = pd.to_numeric(frame[feature], errors="coerce")
             observed = values.dropna()
             rows.append(
                 {
@@ -60,19 +58,17 @@ def describe_data(datasets, development_end=DEVELOPMENT_END):
     return pd.DataFrame(rows)
 
 
-# Check completeness, timestamp consistency and simple domain constraints. The
-# report uses the same development period as the descriptive statistics so no
-# property of the confirmatory year can influence experimental decisions.
-def verify_data_quality(datasets, development_end=DEVELOPMENT_END):
+# Check completeness, timestamp consistency and simple domain constraints across
+# the complete dataset because quality problems can occur in any available period.
+def verify_data_quality(datasets):
     rows = []
     for symbol, frame in sorted(datasets.items()):
-        development = frame.loc[frame["timestamp_utc"] < development_end].copy()
-        numeric = development.loc[:, MARKET_COLUMNS].apply(
+        numeric = frame.loc[:, MARKET_COLUMNS].apply(
             pd.to_numeric,
             errors="coerce",
         )
         missing = numeric.isna()
-        timestamps = pd.DatetimeIndex(development["timestamp_utc"])
+        timestamps = pd.DatetimeIndex(frame["timestamp_utc"])
         hourly_nanoseconds = 60 * 60 * 1_000_000_000
         irregular_steps = np.sum(np.diff(timestamps.asi8) != hourly_nanoseconds)
         adjacent_close_matches = np.isclose(
@@ -83,7 +79,7 @@ def verify_data_quality(datasets, development_end=DEVELOPMENT_END):
 
         # Rows with text in a numeric column are different from genuinely empty
         # cells, so they are counted separately as a consistency problem.
-        original_market = development.loc[:, MARKET_COLUMNS]
+        original_market = frame.loc[:, MARKET_COLUMNS]
         non_numeric = numeric.isna() & original_market.notna()
         volume_observed = numeric["Volume"].notna()
         zero_volume = numeric["Volume"].eq(0) & volume_observed
@@ -91,7 +87,7 @@ def verify_data_quality(datasets, development_end=DEVELOPMENT_END):
         rows.append(
             {
                 "symbol": symbol,
-                "rows": len(development),
+                "rows": len(frame),
                 "start_utc": timestamps.min(),
                 "end_utc": timestamps.max(),
                 "missing_cells": int(missing.sum().sum()),
@@ -102,7 +98,7 @@ def verify_data_quality(datasets, development_end=DEVELOPMENT_END):
                 ),
                 "non_numeric_cells": int(non_numeric.sum().sum()),
                 "duplicate_local_timestamp_rows": int(
-                    development["Date"].duplicated(keep=False).sum()
+                    frame["Date"].duplicated(keep=False).sum()
                 ),
                 "duplicate_utc_timestamp_rows": int(timestamps.duplicated().sum()),
                 "irregular_utc_steps": int(irregular_steps),
