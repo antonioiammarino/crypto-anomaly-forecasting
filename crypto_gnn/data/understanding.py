@@ -81,8 +81,6 @@ def verify_data_quality(datasets):
         # cells, so they are counted separately as a consistency problem.
         original_market = frame.loc[:, MARKET_COLUMNS]
         non_numeric = numeric.isna() & original_market.notna()
-        volume_observed = numeric["Volume"].notna()
-        zero_volume = numeric["Volume"].eq(0) & volume_observed
 
         rows.append(
             {
@@ -90,8 +88,6 @@ def verify_data_quality(datasets):
                 "rows": len(frame),
                 "start_utc": timestamps.min(),
                 "end_utc": timestamps.max(),
-                "missing_cells": int(missing.sum().sum()),
-                "rows_with_missing_values": int(missing.any(axis=1).sum()),
                 "rows_all_market_values_missing": int(missing.all(axis=1).sum()),
                 "rows_partly_missing": int(
                     (missing.any(axis=1) & ~missing.all(axis=1)).sum()
@@ -112,8 +108,6 @@ def verify_data_quality(datasets):
                     .sum()
                 ),
                 "negative_volume_rows": int(numeric["Volume"].lt(0).sum()),
-                "zero_volume_rows": int(zero_volume.sum()),
-                "zero_volume_pct": 100.0 * zero_volume.sum() / volume_observed.sum(),
                 "adjusted_close_mismatches": int((~adjacent_close_matches).sum()),
             }
         )
@@ -134,14 +128,13 @@ if __name__ == "__main__":
     display_columns = [
         "symbol",
         "rows",
-        "rows_with_missing_values",
+        "rows_all_market_values_missing",
         "rows_partly_missing",
-        "zero_volume_pct",
+        "non_numeric_cells",
         "duplicate_utc_timestamp_rows",
         "irregular_utc_steps",
     ]
     display = quality.loc[:, display_columns].copy()
-    display["zero_volume_pct"] = display["zero_volume_pct"].round(2)
     print(display.to_string(index=False))
     print(f"\nDescription written to: {DESCRIPTION_OUTPUT}")
     print(f"Quality report written to: {QUALITY_OUTPUT}")
