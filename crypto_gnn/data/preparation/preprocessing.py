@@ -7,6 +7,13 @@ import pandas as pd
 
 
 FEATURE_COLUMNS = ("Open", "High", "Low", "Close", "Volume")
+OHLC_FEATURE_COLUMNS = (
+    "log_open_to_previous_close",
+    "log_high_to_previous_close",
+    "log_low_to_previous_close",
+    "log_close_to_previous_close",
+)
+OHLCV_FEATURE_COLUMNS = OHLC_FEATURE_COLUMNS + ("log1p_volume",)
 
 LABEL_INVALID = -1
 LABEL_NORMAL = 0
@@ -22,6 +29,35 @@ LABEL_NAMES = {
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATASET_DIRECTORY = PROJECT_ROOT / "dataset crypto" / "cryptos_merged"
 ANOMALY_THRESHOLD = 0.01
+
+
+# Add both feature sets once while preparing each asset. The hourly split later
+# chooses OHLC or OHLCV, while standardization still uses each training fold.
+def add_causal_features(frame):
+    observed = frame.loc[frame["observation_valid"], FEATURE_COLUMNS].copy()
+    observed_index = frame.index[frame["observation_valid"]]
+
+    # Reset the reference after gaps so a missing hour is never treated as one
+    # unusually large hourly movement.
+    previous_close = observed["Close"].shift(1)
+    segment_start = np.zeros(len(observed), dtype=bool)
+    segment_start[0] = True
+    differences = observed_index.to_series().diff().to_numpy(dtype="timedelta64[ns]")
+    segment_start[1:] = differences[1:] != np.timedelta64(1, "h")
+    previous_close.iloc[np.flatnonzero(segment_start)] = observed.loc[
+        segment_start,
+        "Close",
+    ]
+
+    prices = observed.loc[:, ["Open", "High", "Low", "Close"]]
+    price_features = np.log(prices.div(previous_close, axis=0))
+    price_features.columns = OHLC_FEATURE_COLUMNS
+    price_features["log1p_volume"] = np.log1p(observed["Volume"])
+
+    for column in OHLCV_FEATURE_COLUMNS:
+        frame[column] = np.nan
+        frame.loc[observed_index, column] = price_features[column].to_numpy()
+    return frame
 
 
 # Convert one raw cryptocurrency series to a common UTC timeline and create the
@@ -72,6 +108,7 @@ def preprocess_frame(
     result["target_name"] = labels.map(LABEL_NAMES)
     result["target_valid"] = target_valid.astype(bool)
 
+    result = add_causal_features(result)
     return result
 
 

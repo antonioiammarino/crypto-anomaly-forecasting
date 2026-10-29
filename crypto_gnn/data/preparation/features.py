@@ -1,17 +1,14 @@
 # Causal feature construction, temporal windows and train-only standardization.
 
 import numpy as np
-import pandas as pd
 
-FEATURE_COLUMNS = ("Open", "High", "Low", "Close", "Volume")
-
-OHLC_FEATURE_NAMES = (
-    "log_open_to_previous_close",
-    "log_high_to_previous_close",
-    "log_low_to_previous_close",
-    "log_close_to_previous_close",
+from crypto_gnn.data.preparation.preprocessing import (
+    OHLC_FEATURE_COLUMNS,
+    OHLCV_FEATURE_COLUMNS,
 )
-MODEL_FEATURE_NAMES = OHLC_FEATURE_NAMES + ("log1p_volume",)
+
+OHLC_FEATURE_NAMES = OHLC_FEATURE_COLUMNS
+MODEL_FEATURE_NAMES = OHLCV_FEATURE_COLUMNS
 FEATURE_SET_NAMES = {
     "ohlc": OHLC_FEATURE_NAMES,
     "ohlcv": MODEL_FEATURE_NAMES,
@@ -65,37 +62,14 @@ def temporal_window_feature_names(base_names, window_hours):
     return tuple(names)
 
 
-# Convert raw OHLC or OHLCV values into log-ratios. Relative changes are comparable
-# across cryptocurrencies even when their nominal prices are very different.
+# Select the feature family already constructed during data preparation. The two
+# arms share the same prices and differ only by including transformed volume.
 def build_causal_features(frame, feature_set="ohlcv"):
     if feature_set == "ohlcv":
-        requested_columns = FEATURE_COLUMNS
+        requested_columns = OHLCV_FEATURE_COLUMNS
     else:
-        requested_columns = FEATURE_COLUMNS[:-1]
-
-    values = frame.loc[:, requested_columns].astype("float64")
-    prices = values.loc[:, ["Open", "High", "Low", "Close"]]
-
-    # Use the previous Close only inside a continuous hourly segment. After a gap,
-    # the current Close becomes the reference so no missing period is crossed.
-    previous_close = values["Close"].shift(1)
-    segment_start = np.zeros(len(values), dtype=bool)
-    segment_start[0] = True
-    differences = frame.index.to_series().diff().to_numpy(dtype="timedelta64[ns]")
-    segment_start[1:] = differences[1:] != np.timedelta64(1, "h")
-    previous_close.loc[segment_start] = values.loc[segment_start, "Close"]
-
-    price_features = np.log(prices.div(previous_close, axis=0))
-    columns = [
-        price_features["Open"],
-        price_features["High"],
-        price_features["Low"],
-        price_features["Close"],
-    ]
-    # log1p keeps zero volume valid and reduces the large scale differences.
-    if feature_set == "ohlcv":
-        columns.append(np.log1p(values["Volume"]))
-    return np.column_stack(columns).astype(np.float32)
+        requested_columns = OHLC_FEATURE_COLUMNS
+    return frame.loc[:, requested_columns].to_numpy(dtype=np.float32)
 
 
 # Build the complete OHLCV feature set used by the default experiments.
