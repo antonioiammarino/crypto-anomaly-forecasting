@@ -5,6 +5,7 @@ import numpy as np
 from crypto_gnn.data.preparation.preprocessing import (
     OHLC_FEATURE_COLUMNS,
     OHLCV_FEATURE_COLUMNS,
+    add_causal_features,
 )
 
 OHLC_FEATURE_NAMES = OHLC_FEATURE_COLUMNS
@@ -69,6 +70,8 @@ def build_causal_features(frame, feature_set="ohlcv"):
         requested_columns = OHLCV_FEATURE_COLUMNS
     else:
         requested_columns = OHLC_FEATURE_COLUMNS
+    if not set(requested_columns).issubset(frame.columns):
+        frame = add_causal_features(frame.copy())
     return frame.loc[:, requested_columns].to_numpy(dtype=np.float32)
 
 
